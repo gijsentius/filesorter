@@ -10,6 +10,8 @@ __author__ = 'Gijs Entius'
 
 import os
 import shutil
+import re 
+from shutil import SameFileError
 from datetime import datetime
 
 
@@ -22,6 +24,7 @@ class FileSorter():
     '''
     def __init__(self):
         self.base_dir = ""
+        self.photo_mode = True
 
     def _convert_timestamp(self, timestamp):
         '''Function to convert a unix timestamp to yyyy-mm-dd
@@ -31,23 +34,28 @@ class FileSorter():
     def _copy_file(self, file):
         '''Function to copy a file
         '''
-        timestamp = self._convert_timestamp(os.stat(file).st_mtime)
-        time_array = timestamp.split("-")
-        year = time_array[0]
-        month = time_array[1]
-        if os.name == 'nt':  # if windows
-            pass
+        filename = file.name
+        match = re.search("^(IMG_){0,1}([0-9]{8}){1}_.*jpg$", filename)
+
+        if match:
+            year = match.group(2)[:4]
+            month = match.group(2)[4:6]
+            day = match.group(2)[6:8]
+        elif not self.photo_mode:
+            timestamp = self._convert_timestamp(os.stat(file).st_mtime)
+            time_array = timestamp.split("-")
+            year = time_array[0]
+            month = time_array[1]
+            day = time_array[2]
         else:
-            try:
-                os.mkdir(self.base_dir + year)
-            except FileExistsError as identifier:
-                pass
-            try:
-                os.mkdir(self.base_dir + year + "/" + month)
-            except FileExistsError as identifier:
-                pass
-            finally:
-                shutil.copy2(file, self.base_dir + year + "/" + month)           
+            return
+
+        os.makedirs(f"{self.base_dir}{year}/{month}/{day}", exist_ok=True)
+
+        try:
+            shutil.copy2(file, f"{self.base_dir}{year}/{month}/{day}/{filename}")
+        except SameFileError:
+            pass
 
     def _sort_files_recursive(self, from_dir):
         '''Function to sort files recursively
@@ -62,18 +70,15 @@ class FileSorter():
             print(from_dir, " is not a directory")
 
     def _check_base_dir(self, dir):
-        if os.name == 'nt':  # if windows
-            return dir
+        if dir[-1] != "/":
+            return dir + "/"
         else:
-            if dir[-1] is not "/":
-                return dir + "/"
-            else:
-                return dir
+            return dir
 
     def sort_files_on_month(self, from_dir, to_dir=""):
         '''Function to sort file on month of modification
         '''
-        if to_dir is "":
+        if to_dir == "":
             self.base_dir = self._check_base_dir(os.getcwd())
         else:
             self.base_dir = self._check_base_dir(to_dir)
