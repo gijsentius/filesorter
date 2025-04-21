@@ -36,13 +36,14 @@ class FileSorter():
         '''Function to copy a file
         '''
         filename = file.name
-        match = re.search("^(IMG_|WP_){0,1}([0-9]{8}){1}_.*jpg$", filename)
+        extension = filename.split(".")[1]
+        match = re.search("^(IMG_|WP_|MOV_|VID_){0,1}([0-9]{8}){1}_.*" + self.extension + "$", filename)
 
         if match:
             year = match.group(2)[:4]
             month = match.group(2)[4:6]
             day = match.group(2)[6:8]
-        elif not self.extension == "jpg":
+        elif not match and self.extension == "*" or extension == self.extension:
             timestamp = self._convert_timestamp(os.stat(file).st_mtime)
             time_array = timestamp.split("-")
             year = time_array[0]
