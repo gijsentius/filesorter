@@ -22,6 +22,10 @@ if __name__ == "__main__":
         help='The source directory of the files to sort')
     parser.add_argument('-o', '--output', default="",
         help='The output directory of the files to sort')
+    parser.add_argument('-e', '--extension', default="",
+        help='The extension of files to sort')
+    parser.add_argument('--move', action='store_const', const=True,
+        help='Enables moving files instead of copying')
     args = parser.parse_args()
 
-    sorter.sort_files_on_month(args.source, args.output)
+    sorter.sort_files(args.source, args.output, args.extension, args.move)
