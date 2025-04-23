@@ -21,6 +21,8 @@ import time
 register_heif_opener()
 
 SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "heic", "mov", "avi", "mp4"]
+DENY_LIST = ["SYNOPHOTO"]
+INVALID_DATE = ("0001", "01", "01")
 
 
 class FileDate():
@@ -40,6 +42,13 @@ class FileDate():
 
     def date_epoch(self):
         return time.mktime(time.strptime(str(self), "%Y-%m-%d"))
+
+    def is_valid(self):
+        if int(self.day) > 31: 
+            return False
+        if int(self.month) > 12:
+            return False
+        return self.year > 1900 and self.year < 2100
 
 
 class FileSorter():
@@ -89,21 +98,30 @@ class FileSorter():
         name_date = self._get_date_from_filename(file)
         mod_date = self._get_modified_date(file)
 
+        real_date = None
+
         if exif_date is not None:
             if str(exif_date) != str(mod_date):
                 self._update_mod_date(file, exif_date)
-            return exif_date.date_tuple()
+            real_date = exif_date
         elif name_date is not None:
-            if str(name_date) != str(mod_date):
+            if str(name_date) != str(mod_date) and name_date.is_valid():
                 self._update_mod_date(file, name_date)
-            return name_date.date_tuple()
+            real_date = name_date
         else:
-            return mod_date.date_tuple()
+            real_date = mod_date
+
+        if not real_date.is_valid():
+            print(f"{file.path} date {real_date} is not valid")
+            return INVALID_DATE
+        return real_date
 
     def _copy_file(self, file):
         '''Function to copy a file
         '''
-        if file.name.split(".")[1].lower() not in SUPPORTED_EXTENSIONS:
+        if file.name.split(".")[-1].lower() not in SUPPORTED_EXTENSIONS:
+            return
+        if any(i in file.name for i in DENY_LIST):
             return
 
         year, month, day = self._adjust_file_date(file)
