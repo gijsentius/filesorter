@@ -21,7 +21,7 @@ import time
 register_heif_opener()
 
 SUPPORTED_EXTENSIONS = ["jpg", "jpeg", "png", "heic", "mov", "avi", "mp4"]
-DENY_LIST = ["SYNOPHOTO"]
+DENY_LIST = ["SYNOPHOTO", "eaDir"]
 INVALID_DATE = ("0001", "01", "01")
 
 
@@ -48,7 +48,7 @@ class FileDate():
             return False
         if int(self.month) > 12:
             return False
-        return self.year > 1900 and self.year < 2100
+        return int(self.year) > 1900 and int(self.year) < 2100
 
 
 class FileSorter():
@@ -114,7 +114,8 @@ class FileSorter():
         if not real_date.is_valid():
             print(f"{file.path} date {real_date} is not valid")
             return INVALID_DATE
-        return real_date
+
+        return real_date.date_tuple()
 
     def _copy_file(self, file):
         '''Function to copy a file
@@ -147,6 +148,8 @@ class FileSorter():
         if os.path.isdir(from_dir):
             for item in os.scandir(from_dir):
                 if item.is_dir():
+                    if any(i in item.name for i in DENY_LIST):
+                        return
                     self._sort_files_recursive(item.path)
                 else:
                     self._copy_file(item)
